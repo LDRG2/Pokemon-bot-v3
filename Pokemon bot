@@ -1,0 +1,242 @@
+import java.util.*;
+
+class Move {
+    private String name;
+    private int damage;
+
+    public Move(String name, int damage) {
+        this.name = name;
+        this.damage = damage;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getDamage() {
+        return damage;
+    }
+}
+
+class Pokemon {
+    private String name;
+    private int baseHp;
+    private int currentHp;
+    private Move[] moves;
+
+    public Pokemon(String name, int baseHp, Move[] moves) {
+        this.name = name;
+        this.baseHp = baseHp;
+        this.currentHp = baseHp;
+        this.moves = moves;
+    }
+
+    public void takeDamage(int damage) {
+        this.currentHp -= damage;
+        if (this.currentHp < 0) this.currentHp = 0;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getCurrentHp() {
+        return currentHp;
+    }
+
+    public Move[] getMoves() {
+        return moves;
+    }
+
+    @Override
+    public String toString() {
+        return name + " (HP: " + currentHp + ")";
+    }
+}
+
+class Battle {
+    private Pokemon playerPokemon;
+    private Pokemon opponentPokemon;
+
+    public Battle(Pokemon playerPokemon, Pokemon opponentPokemon) {
+        this.playerPokemon = playerPokemon;
+        this.opponentPokemon = opponentPokemon;
+    }
+
+    public String battleTurn(Move playerMove, Move opponentMove) {
+        opponentPokemon.takeDamage(playerMove.getDamage());
+        playerPokemon.takeDamage(opponentMove.getDamage());
+        return playerPokemon.toString() + "\n" + opponentPokemon.toString();
+    }
+
+    public boolean isBattleOver() {
+        return playerPokemon.getCurrentHp() <= 0 || opponentPokemon.getCurrentHp() <= 0;
+    }
+
+    public Pokemon getPlayerPokemon() {
+        return playerPokemon;
+    }
+
+    public Pokemon getOpponentPokemon() {
+        return opponentPokemon;
+    }
+}
+
+public class WhatsAppBot {
+    private Map<String, Battle> ongoingBattles = new HashMap<>();
+    private List<Pokemon> availablePokemons;
+    private Map<String, String> pokemonImages;
+    private Random random;
+
+    public WhatsAppBot() {
+        random = new Random();
+        availablePokemons = new ArrayList<>();
+        initializePokemons();
+        initializeImages();
+    }
+
+    private void initializePokemons() {
+        availablePokemons.add(new Pokemon("Charizard", 100, new Move[]{
+            new Move("Flamethrower", 30),
+            new Move("Dragon Claw", 25),
+            new Move("Fly", 20),
+            new Move("Fire Spin", 15)
+        }));
+        availablePokemons.add(new Pokemon("Blastoise", 100, new Move[]{
+            new Move("Water Gun", 20),
+            new Move("Hydro Pump", 35),
+            new Move("Bite", 15),
+            new Move("Skull Bash", 25)
+        }));
+        availablePokemons.add(new Pokemon("Pikachu", 80, new Move[]{
+            new Move("Thunderbolt", 25),
+            new Move("Quick Attack", 15),
+            new Move("Electro Ball", 30),
+            new Move("Iron Tail", 20)
+        }));
+        availablePokemons.add(new Pokemon("Gengar", 90, new Move[]{
+            new Move("Shadow Ball", 30),
+            new Move("Lick", 15),
+            new Move("Hex", 25),
+            new Move("Dream Eater", 40)
+        }));
+        availablePokemons.add(new Pokemon("Mewtwo", 130, new Move[]{
+            new Move("Psystrike", 35),
+            new Move("Psychic", 30),
+            new Move("Aura Sphere", 25),
+            new Move("Shadow Ball", 20)
+        }));
+        availablePokemons.add(new Pokemon("Lucario", 100, new Move[]{
+            new Move("Aura Sphere", 25),
+            new Move("Close Combat", 35),
+            new Move("Metal Claw", 15),
+            new Move("Quick Attack", 20)
+        }));
+    }
+
+    private void initializeImages() {
+        pokemonImages = new HashMap<>();
+        pokemonImages.put("Charizard", "https://img.pokemondb.net/sprites/black-white/normal/charizard.png");
+        pokemonImages.put("Blastoise", "https://img.pokemondb.net/sprites/black-white/normal/blastoise.png");
+        pokemonImages.put("Pikachu", "https://img.pokemondb.net/sprites/black-white/normal/pikachu.png");
+        pokemonImages.put("Gengar", "https://img.pokemondb.net/sprites/black-white/normal/gengar.png");
+        pokemonImages.put("Mewtwo", "https://img.pokemondb.net/sprites/black-white/normal/mewtwo.png");
+        pokemonImages.put("Lucario", "https://img.pokemondb.net/sprites/black-white/normal/lucario.png");
+    }
+
+    public void startBattle(String chatId) {
+        List<Pokemon> playerPokemons = selectRandomPokemons();
+        Pokemon opponentPokemon = selectRandomOpponentPokemon();
+        Battle battle = new Battle(playerPokemons.get(0), opponentPokemon);
+        ongoingBattles.put(chatId, battle);
+
+        System.out.println("Battle started! Your Pokemon:");
+        for (Pokemon pokemon : playerPokemons) {
+            System.out.println(pokemon + " - Image: " + pokemonImages.get(pokemon.getName()));
+        }
+        System.out.println("Opponent Pokemon: " + opponentPokemon.getName() + " - Image: " + pokemonImages.get(opponentPokemon.getName()));
+    }
+
+    private List<Pokemon> selectRandomPokemons() {
+        List<Pokemon> selectedPokemons = new ArrayList<>();
+        List<Pokemon> tempAvailable = new ArrayList<>(availablePokemons);
+
+        for (int i = 0; i < 3; i++) {
+            int index = random.nextInt(tempAvailable.size());
+            selectedPokemons.add(tempAvailable.remove(index));
+        }
+        return selectedPokemons;
+    }
+
+    private Pokemon selectRandomOpponentPokemon() {
+        return availablePokemons.get(random.nextInt(availablePokemons.size()));
+    }
+
+    public void handleTurn(String chatId, String playerMoveName) {
+        Battle battle = ongoingBattles.get(chatId);
+        if (battle != null) {
+            if (playerMoveName.equalsIgnoreCase("moves")) {
+                // Display available moves
+                System.out.println("Available moves for " + battle.getPlayerPokemon().getName() + ":");
+                for (Move move : battle.getPlayerPokemon().getMoves()) {
+                    System.out.println(move.getName() + " (Damage: " + move.getDamage() + ")");
+                }
+                return; // Exit the method after displaying moves
+            }
+
+            Move playerMove = getMoveByName(playerMoveName, battle.getPlayerPokemon());
+            Move opponentMove = getRandomOpponentMove(battle.getOpponentPokemon());
+
+            if (playerMove != null) {
+                String result = battle.battleTurn(playerMove, opponentMove);
+                System.out.println(result);
+                if (battle.isBattleOver()) {
+                    System.out.println("Battle over!");
+                    ongoingBattles.remove(chatId);
+                } else {
+                    System.out.println("Opponent's turn: " + opponentMove.getName());
+                }
+            } else {
+                System.out.println("Invalid move! Available moves:");
+                for (Move move : battle.getPlayerPokemon().getMoves()) {
+                    System.out.println(move.getName());
+                }
+            }
+        } else {
+            System.out.println("No ongoing battle found.");
+        }
+    }
+
+    private Move getMoveByName(String name, Pokemon pokemon) {
+        for (Move move : pokemon.getMoves()) {
+            if (move.getName().equalsIgnoreCase(name)) {
+                return move;
+            }
+        }
+        return null;
+    }
+
+    private Move getRandomOpponentMove(Pokemon opponent) {
+        Move[] moves = opponent.getMoves();
+        return moves[random.nextInt(moves.length)];
+    }
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        WhatsAppBot bot = new WhatsAppBot();
+        String chatId = "user123";
+
+        bot.startBattle(chatId);
+
+        while (true) {
+            System.out.println("Enter your move (or 'moves' to see your Pokemon moves, or 'exit' to quit):");
+            String playerMove = scanner.nextLine();
+            if (playerMove.equalsIgnoreCase("exit")) {
+                break;
+            }
+            bot.handleTurn(chatId, playerMove);
+        }
+
+        scanner.close();
+    }
+}
